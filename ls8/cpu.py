@@ -5,9 +5,29 @@ import sys
 class CPU:
     """Main CPU class."""
 
-    def __init__(self):
+    def __init__(self, pc=0):
         """Construct a new CPU."""
-        pass
+        self.reg = [0] * 8
+        self.pc = pc 
+        self.ram = [0] * 255
+        
+    """
+    The instruction pointed to by the PC is 
+    fetched from RAM, decoded, and executed.
+    """
+    LDI = 0b10000010 
+    PRN = 0b01000111
+    HLT = 0b00000001
+    MUL = 0b10100010
+    
+    def ram_read(self, MAR):
+        return self.ram[MAR] #set the value to Memory Address Register, holds the memory address we're reading or writing
+        
+
+    def ram_write(self, MAR):
+        self.ram[MAR]  #Memory Data Register, holds the value to write or the value just read
+        
+
 
     def load(self):
         """Load a program into memory."""
@@ -59,7 +79,18 @@ class CPU:
             print(" %02X" % self.reg[i], end='')
 
         print()
-
+    
+    
+         
+    
+    
     def run(self):
-        """Run the CPU."""
-        pass
+        """
+        Run the CPU.
+        PRN  01000111 00000rrr
+        HLT  00000001 
+        LDI  10000010 00000rrr iiiiiiii
+        """
+        
+        
+                
