@@ -2,10 +2,20 @@
 
 import sys
 
+#Binary op codes
 LDI = 0b10000010
 PRN = 0b01000111
 HLT = 0b00000001
 MUL = 0b10100010
+PUSH = 0b01000101 
+POP = 0b01000110
+CALL = 0b01010000 
+RET = 0b00010001
+CMP = 0b10100111
+PRA = 0b01001000
+JMP = 0b01010100
+SP = 7
+
 
 class CPU:
     """Main CPU class."""
@@ -17,11 +27,16 @@ class CPU:
         self.ram = [0] * 255
         self.running = running
         
+        self.reg[SP] = 0xF4
+          
         self.branch_table = {}
         self.branch_table[LDI] = self.LDI        
         self.branch_table[PRN] = self.PRN
         self.branch_table[HLT] = self.HLT
         self.branch_table[MUL] = self.MUL
+        self.branch_table[PUSH] = self.PUSH
+        self.branch_table[POP] = self.POP
+        
     """
     The instruction pointed to by the PC is 
     fetched from RAM, decoded, and executed.
@@ -29,18 +44,24 @@ class CPU:
     
     
     def ram_read(self, MAR):
+        
         return self.ram[MAR] #set the value to Memory Address Register, holds the memory address we're reading or writing
         
 
     def ram_write(self, MAR, MDR):
+        
         self.ram[MAR] = MDR #Memory Data Register, holds the value to write or the value just read
     
     def LDI(self, op, r1, r2):
+        
         self.reg[r1] = r2
+        
         self.pc += 3
     
     def PRN(self, op, r1, r2):
+        
         print(self.reg[r1])
+        
         self.pc += 2
     
     def HLT(self, op, r1, r2):
@@ -49,8 +70,29 @@ class CPU:
     def MUL(self, op, r1, r2):
         
         self.alu("MUL",r1, r2) 
+        
         self.pc += 3
-
+        
+    def PUSH(self, op, r1, r2):
+        #decrement SP pointer
+        self.reg[SP] -= 1
+        #Copy value in given register
+        reg_val = self.reg[r1]
+        #Copy value to the address pointed to
+        self.ram[self.reg[SP]] = reg_val
+        
+        self.pc += 2
+    
+    def POP(self, op, r1, r2):
+        #get value at pointer 
+        reg_val = self.ram[self.reg[SP]]
+        #copy value to given register
+        self.reg[r1] = reg_val
+        # increment Stack Pointer
+        self.reg[SP] += 1
+        
+        self.pc += 2
+        
     def load(self):
         """Load a program into memory."""
 
@@ -106,12 +148,9 @@ class CPU:
 
         print()
     
-    
-         
-    
-    
-    def run(self):
-        
+    #Main Loop
+       
+    def run(self):       
         """
         Run the CPU.      
         """    
