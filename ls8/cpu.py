@@ -2,19 +2,23 @@
 
 import sys
 
-#Binary op codes
-LDI = 0b10000010
-PRN = 0b01000111
-HLT = 0b00000001
-MUL = 0b10100010
-PUSH = 0b01000101 
-POP = 0b01000110
-CALL = 0b01010000 
-RET = 0b00010001
-CMP = 0b10100111
-PRA = 0b01001000
-JMP = 0b01010100
-SP = 7
+#Binary op codes | base 10
+
+LDI = 0b10000010    #130
+PRN = 0b01000111    #71
+HLT = 0b00000001    #1
+MUL = 0b10100010    #130
+PUSH = 0b01000101   #69
+POP = 0b01000110    #70
+CALL = 0b01010000   #80
+RET = 0b00010001    #17
+ADD = 0b10100000    #160
+CMP = 0b10100111    #167
+JMP = 0b01010100    #84
+JEQ = 0b01010101    #85
+JNE = 0b01010110    #86
+
+SP = 7              #7
 
 
 class CPU:
@@ -26,7 +30,7 @@ class CPU:
         self.pc = pc 
         self.ram = [0] * 255
         self.running = running
-        
+        self.FL = 0
         self.reg[SP] = 0xF4
           
         self.branch_table = {}
@@ -36,6 +40,13 @@ class CPU:
         self.branch_table[MUL] = self.MUL
         self.branch_table[PUSH] = self.PUSH
         self.branch_table[POP] = self.POP
+        self.branch_table[CALL] = self.CALL
+        self.branch_table[RET] = self.RET
+        self.branch_table[ADD] = self.ADD
+        self.branch_table[CMP] = self.CMP
+        self.branch_table[JMP] = self.JMP
+        self.branch_table[JEQ] = self.JEQ
+        self.branch_table[JNE] = self.JNE
         
     """
     The instruction pointed to by the PC is 
@@ -73,18 +84,23 @@ class CPU:
         
         self.pc += 3
         
+    def ADD(self, op, r1, r2):
+        self.alu("ADD", r1, r2)
+        
+        self.pc += 3
+        
     def PUSH(self, op, r1, r2):
         #decrement SP pointer
         self.reg[SP] -= 1
         #Copy value in given register
         reg_val = self.reg[r1]
-        #Copy value to the address pointed to
+        #Copy value to the address pointed to in stack
         self.ram[self.reg[SP]] = reg_val
         
         self.pc += 2
     
     def POP(self, op, r1, r2):
-        #get value at pointer 
+        #get value at pointer in stack
         reg_val = self.ram[self.reg[SP]]
         #copy value to given register
         self.reg[r1] = reg_val
@@ -92,6 +108,47 @@ class CPU:
         self.reg[SP] += 1
         
         self.pc += 2
+        
+    def CALL(self, op, r1, r2):
+        #set return addr
+        return_addr = self.pc + 2
+        #push it to the stack
+        self.reg[SP] -= 1
+        self.ram[self.reg[SP]] = return_addr
+        # Set ther PC to the subroutine
+        self.pc = self.reg[r1]
+        
+         
+        
+    
+    def RET(self, op, r1, r2):
+        #pop the return addr off strack
+        self.pc = self.ram[self.reg[SP]]
+        
+        self.reg[SP] += 1
+        
+        
+        
+    def CMP(self, op, r1, r2):
+        self.alu("CMP",r1, r2) 
+        
+        self.pc += 3
+    
+    def JMP(self, op, r1, r2):
+        self.pc = self.reg[r1]
+    
+        
+    def JEQ(self, op, r1, r2):
+        if self.FL == 0b00000001:
+            self.JMP(op,r1,r2)
+        else:
+            self.pc += 2
+        
+    def JNE(self, op, r1, r2):
+        if self.FL != 0b00000001:
+            self.JMP(op,r1,r2)
+        else:
+            self.pc += 2
         
     def load(self):
         """Load a program into memory."""
@@ -125,6 +182,11 @@ class CPU:
         #elif op == "SUB": etc
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "CMP":
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.FL = 0b00000001
+            
+            
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -159,12 +221,11 @@ class CPU:
             op = ir
             op_a = self.ram_read(self.pc + 1)
             op_b = self.ram_read(self.pc + 2)
-            
+            # print("IR",ir, "OPA", op_a, "OPB", op_b)
             self.branch_table[ir]( op, op_a, op_b)
             
-            
+       
        
 m = CPU()
 m.load()
-m.run()              
-                
+# m.run()    
